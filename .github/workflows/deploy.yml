@@ -1,0 +1,41 @@
+name: Deploy PWA + keep-alive
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/deploy.yml']
+  schedule:
+    - cron: '17 6 * * *'   # dagelijks: voorkomt dat het gratis Supabase-project pauzeert
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Schrijf config.js vanuit repository-variabelen
+        run: |
+          cat > app/config.js <<EOF
+          export const SUPABASE_URL = '${{ vars.SUPABASE_URL }}';
+          export const SUPABASE_ANON_KEY = '${{ vars.SUPABASE_ANON_KEY }}';
+          EOF
+      - name: Keep-alive ping naar Supabase
+        run: |
+          curl -fsS "${{ vars.SUPABASE_URL }}/rest/v1/" -H "apikey: ${{ vars.SUPABASE_ANON_KEY }}" -o /dev/null || echo "ping mislukt"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+      - id: deployment
+        uses: actions/deploy-pages@v4

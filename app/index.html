@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6f5c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Thuis">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Thuis</title>
+</head>
+<body>
+  <header><h1 id="title">Thuis</h1><span id="conn" class="conn" title="verbinding"></span></header>
+  <main id="view"><p class="muted">Laden…</p></main>
+  <nav id="tabs" hidden>
+    <button data-act="tab" data-tab="home"><span>🏠</span>Thuis</button>
+    <button data-act="tab" data-tab="uit"><span>🚶</span>Uit</button>
+    <button data-act="tab" data-tab="activiteiten"><span>🎲</span>Activiteiten</button>
+    <button data-act="tab" data-tab="eten"><span>🍝</span>Eten</button>
+    <button data-act="tab" data-tab="ik"><span>⚙️</span>Ik</button>
+  </nav>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
