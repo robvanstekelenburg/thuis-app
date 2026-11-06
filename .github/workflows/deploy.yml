@@ -1,11 +1,10 @@
-name: Deploy PWA + keep-alive
+name: Deploy PWA
 on:
   push:
     branches: [main]
-    paths: ['app/**', '.github/workflows/deploy.yml']
-  schedule:
-    - cron: '17 6 * * *'   # dagelijks: voorkomt dat het gratis Supabase-project pauzeert
+    paths: ['app/**', 'scripts/sb-key.sh', '.github/workflows/deploy.yml']
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -14,7 +13,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -23,19 +22,25 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Schrijf config.js vanuit repository-variabelen
+      - uses: actions/checkout@v7
+      - name: Schrijf config.js
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
         run: |
-          cat > app/config.js <<EOF
-          export const SUPABASE_URL = '${{ vars.SUPABASE_URL }}';
-          export const SUPABASE_ANON_KEY = '${{ vars.SUPABASE_ANON_KEY }}';
-          EOF
-      - name: Keep-alive ping naar Supabase
-        run: |
-          curl -fsS "${{ vars.SUPABASE_URL }}/rest/v1/" -H "apikey: ${{ vars.SUPABASE_ANON_KEY }}" -o /dev/null || echo "ping mislukt"
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+          URL=""; KEY=""
+          if [ -n "$SUPABASE_PROJECT_REF" ] && [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            URL="https://$SUPABASE_PROJECT_REF.supabase.co"
+            KEY=$(scripts/sb-key.sh publishable)
+          else
+            echo "::warning::Supabase nog niet gekoppeld; de app toont een setup-melding (zie README)."
+          fi
+          printf "export const SUPABASE_URL = '%s';\nexport const SUPABASE_KEY = '%s';\nexport const VAPID_PUBLIC_KEY = '%s';\n" \
+            "$URL" "$KEY" "$VAPID_PUBLIC_KEY" > app/config.js
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: app
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

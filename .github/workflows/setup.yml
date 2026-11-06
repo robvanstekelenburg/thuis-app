@@ -1,0 +1,61 @@
+name: Supabase instellen
+# Zet database, anonieme login, push-sleutels en de Edge Function klaar, en deployt daarna de app.
+# Nodig: variabele SUPABASE_PROJECT_REF en secret SUPABASE_ACCESS_TOKEN (zie README).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['supabase/migrations/**', 'supabase/functions/**', 'supabase/config.toml', '.github/workflows/setup.yml']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  supabase:
+    if: vars.SUPABASE_PROJECT_REF != ''
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      API: https://api.supabase.com/v1/projects/${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Controleer instellingen
+        env:
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: |
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || { echo "::error::Secret SUPABASE_ACCESS_TOKEN ontbreekt (zie README)"; exit 1; }
+          [ -n "$VAPID_PUBLIC_KEY" ] && [ -n "$VAPID_PRIVATE_KEY" ] || { echo "::error::VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY ontbreken"; exit 1; }
+      - name: Database-schema
+        run: |
+          for f in supabase/migrations/*.sql; do
+            echo "→ $f"
+            jq -Rs '{query: .}' "$f" | curl --fail-with-body -sS -o /dev/null -X POST "$API/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" --data-binary @-
+          done
+      - name: Anonieme login aanzetten
+        run: |
+          curl --fail-with-body -sS -o /dev/null -X PATCH "$API/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+            -d '{"external_anonymous_users_enabled": true}'
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - name: Push-sleutels voor de Edge Function
+        env:
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: |
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" \
+            "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY" "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY" "VAPID_SUBJECT=$VAPID_SUBJECT"
+      - name: Edge Function 'notify' deployen
+        run: supabase functions deploy notify --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
+
+  deploy:
+    needs: supabase
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

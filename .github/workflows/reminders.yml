@@ -1,0 +1,23 @@
+name: Beurt-herinnering
+# Elke avond: "morgen ben jij aan de beurt" en "vandaag laatste dag" naar wie het aangaat.
+# Houdt ook het gratis Supabase-project actief (pauzeert anders na een week zonder verkeer).
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 19:00 (winter) / 20:00 (zomer) Nederlandse tijd
+  workflow_dispatch:
+
+jobs:
+  remind:
+    if: vars.SUPABASE_PROJECT_REF != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Herinnering versturen
+        env:
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          KEY=$(scripts/sb-key.sh secret)
+          echo "::add-mask::$KEY"
+          curl --fail-with-body -sS -X POST "https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/notify" \
+            -H "apikey: $KEY" -H "x-service-key: $KEY" -H "Content-Type: application/json" -d '{"type":"rota"}'

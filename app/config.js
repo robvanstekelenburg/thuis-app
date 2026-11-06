@@ -1,4 +1,5 @@
-// Publieke waarden (de anon key is bedoeld om openbaar te zijn; Row Level Security beschermt de data).
-// In productie schrijft de GitHub Action dit bestand opnieuw vanuit repository-variabelen.
-export const SUPABASE_URL = 'https://JOUW-PROJECT.supabase.co';
-export const SUPABASE_ANON_KEY = 'JOUW-ANON-KEY';
+// Publieke waarden. De GitHub Action "Deploy PWA" schrijft dit bestand opnieuw met de echte waarden.
+// De publishable/anon key mag openbaar zijn: Row Level Security beschermt de data.
+export const SUPABASE_URL = '';
+export const SUPABASE_KEY = '';
+export const VAPID_PUBLIC_KEY = '';

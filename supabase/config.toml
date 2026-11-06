@@ -1,0 +1,4 @@
+project_id = "thuis-app"
+
+[functions.notify]
+verify_jwt = false

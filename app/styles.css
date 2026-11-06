@@ -36,3 +36,7 @@ nav button.active{color:var(--brand);font-weight:600}
 #toast.show{opacity:1;transform:translateX(-50%)}
 .dayhead{display:flex;justify-content:space-between;align-items:baseline}
 .today{border-color:var(--brand)}
+code{display:block;word-break:break-all;font-size:.8rem;background:var(--soft);padding:6px 8px;border-radius:8px;user-select:all;margin:2px 0 6px}
+.code{letter-spacing:.12em;font-size:1.1rem}
+button:disabled{opacity:.6}
+details summary{cursor:pointer;margin-top:4px}
